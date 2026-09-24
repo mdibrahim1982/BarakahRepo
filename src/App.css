@@ -860,6 +860,12 @@ body {
     inset 0 -3px 4px rgba(20, 30, 28, 0.14),
     0 4px 8px -2px rgba(20, 30, 28, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.7);
+  font-family: "Segoe UI Emoji",
+               "Apple Color Emoji",
+               "Noto Color Emoji",
+               sans-serif;
+  font-size: 28px;
+  line-height: 1.2;
 }
 
 .activity-label { font-weight: 600; font-size: 13.5px; line-height: 1.2; }
@@ -1212,12 +1218,4 @@ body {
   .banner-clock { padding: 5px 8px 4px; }
   .banner-clock-date { display: none; }
 }
-.activity-icon {
-  font-family:
-    "Segoe UI Emoji",
-    "Apple Color Emoji",
-    "Noto Color Emoji",
-    sans-serif;
-  font-size: 28px;
-  line-height: 1.2;
-}
+
