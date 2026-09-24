@@ -60,6 +60,12 @@ body {
   filter: drop-shadow(0 2px 5px rgba(6, 26, 24, 0.45));
   pointer-events: none;
   user-select: none;
+
+   font-family:
+    "Segoe UI Emoji",
+    "Apple Color Emoji",
+    "Noto Color Emoji",
+    sans-serif;
 }
 .hero-motif-crescent {
   top: 8px;
