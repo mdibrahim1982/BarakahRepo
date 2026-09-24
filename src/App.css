@@ -1212,3 +1212,12 @@ body {
   .banner-clock { padding: 5px 8px 4px; }
   .banner-clock-date { display: none; }
 }
+.activity-icon {
+  font-family:
+    "Segoe UI Emoji",
+    "Apple Color Emoji",
+    "Noto Color Emoji",
+    sans-serif;
+  font-size: 28px;
+  line-height: 1.2;
+}
