@@ -1216,6 +1216,6 @@ body {
   .kid-tabs-row { flex-wrap: wrap; }
   .analog-clock { width: 34px; height: 34px; }
   .banner-clock { padding: 5px 8px 4px; }
-  .banner-clock-date { display: none; }
+ // .banner-clock-date { display: none; }
 }
 
