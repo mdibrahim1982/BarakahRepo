@@ -147,8 +147,46 @@ export const CATEGORY_COLORS = {
 
 export const KIDS = [
   { id: 'muaadh', name: 'Muaadh', grade: '7th Grade', color: '#1F6F6B', initial: 'M' },
-  { id: 'katheejah', name: 'Katheejah', grade: '5th Grade', color: '#C97B84', initial: 'K' },
+  { id: 'katheejah', name: 'Khateejah', grade: '5th Grade', color: '#C97B84', initial: 'K' },
 ]
+
+// Short, paraphrased reminders (not verbatim scripture) shown as a little
+// pop-up tip right after a kid claims a coin, before it flies to the
+// bucket — picked by the activity's category. One is chosen at random
+// each time so it doesn't feel repetitive.
+export const CATEGORY_TIPS = {
+  prayer: [
+    "🕌 The Prophet ﷺ taught that prayer is the coolness of his eyes — the more you love it, the more it shows.",
+    '🕌 Prayer was the very first thing people are asked about on the Day of Judgment. Showing up for it matters!',
+    '🕌 Every prayer on time is a small victory that keeps your heart connected to Allah.',
+  ],
+  quran: [
+    "📖 The Prophet ﷺ said the best among you are those who learn the Qur'an and teach it.",
+    '📖 Every letter recited from the Qurʼan brings its own reward — and rewards get multiplied!',
+    "📖 The Qur'an will be a light for you on the Day of Judgment. Keep reciting, keep shining.",
+    '📗 The Prophet ﷺ was the best example of kind and gentle character — reading about his life helps us follow it.',
+  ],
+  study: [
+    '📚 The Prophet ﷺ said seeking knowledge is a duty upon every Muslim.',
+    '📚 A moment spent learning is never wasted — knowledge is a light that never goes out.',
+    '📚 Scholars are honoured greatly in Islam. Keep learning, keep growing!',
+  ],
+  discipline: [
+    '😊 A smile and good manners are considered a form of charity. Keep it up!',
+    '🤝 The Prophet ﷺ said the best of you are those who are best to their families.',
+    "📱 Self-control is part of faith — nice job keeping your balance today.",
+  ],
+  play: [
+    '🌳 The Prophet ﷺ encouraged play and exercise — a strong, healthy body helps you worship better too.',
+    '🌳 Even the Prophet ﷺ used to race and play with others. Enjoy your time outdoors!',
+  ],
+}
+
+export function getCategoryTip(category) {
+  const list = CATEGORY_TIPS[category]
+  if (!list || !list.length) return null
+  return list[Math.floor(Math.random() * list.length)]
+}
 
 export function todayKey(d = new Date()) {
   return d.toISOString().slice(0, 10) // YYYY-MM-DD
