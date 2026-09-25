@@ -26,7 +26,7 @@ const TIP_MS = 1700
 
 // Bumped to v6: Fajr penalty replaced with a separate "Late Comer" credit
 // button, and per-activity cash is now tracked exactly (credit stored per
-// entry) instead of assumed as coins Ã— rate â€” old v5 saves aren't compatible.
+// entry) instead of assumed as coins × rate — old v5 saves aren't compatible.
 const STORAGE_KEY = 'barakahRoutine:v6'
 const FLIGHT_MS = 650
 const ADMIN_PASSCODE = 'Fathi@143'
@@ -58,7 +58,7 @@ function saveState(state) {
   }
 }
 
-// Closing a day only turns leftover "pending" rows into "missed" â€”
+// Closing a day only turns leftover "pending" rows into "missed" —
 // coins are already credited the moment each activity is marked done.
 function closeDay(day) {
   const activities = { ...day.activities }
@@ -168,7 +168,7 @@ export default function App() {
     setTimeout(() => setFlights((prev) => prev.filter((f) => f.id !== id)), FLIGHT_MS + 50)
   }
 
-  // `credit` is the rupee amount this entry earns â€” normally the current
+  // `credit` is the rupee amount this entry earns — normally the current
   // per-coin rate, but a fixed, smaller amount for a self-reported late
   // Fajr (see pressLateButton). Stored on the entry itself so later rate
   // changes, rejections, and admin resets all stay accurate.
@@ -227,7 +227,7 @@ export default function App() {
   }
 
   // "Push Now": on-time press earns the full coin; a press after the
-  // deadline is simply missed (no coin, no penalty) â€” a genuinely late
+  // deadline is simply missed (no coin, no penalty) — a genuinely late
   // prayer should instead be logged with the "Late Comer" button below.
   function pressTimedButton(activity, e) {
     const pressedAt = new Date()
@@ -272,7 +272,7 @@ export default function App() {
     })
   }
 
-  // Approving just marks the coin as checked â€” it was already credited the
+  // Approving just marks the coin as checked — it was already credited the
   // moment the kid tapped the button, so nothing about the coin changes.
   function approveEntry(activityId) {
     setState((prev) => {
@@ -289,8 +289,8 @@ export default function App() {
   }
 
   // Rejecting takes back a coin the kid claimed but the parent doesn't
-  // believe â€” the entry is marked rejected, the earlier credit is undone,
-  // AND a further â‚¹5 penalty is added to the kid's carried-forward debt
+  // believe — the entry is marked rejected, the earlier credit is undone,
+  // AND a further ₹5 penalty is added to the kid's carried-forward debt
   // (not just this week's bucket), so it keeps reducing payouts on
   // remaining days and weeks until it's fully paid off.
   const REJECT_PENALTY = 5
@@ -351,8 +351,8 @@ export default function App() {
     const payout = Math.max(0, week.cash - debtNow)
     const confirmMsg =
       debtNow > 0
-        ? `Empty all buckets for ${activeKidInfo.name}? â‚¹${Math.min(week.cash, debtNow).toFixed(2)} of this week's â‚¹${week.cash.toFixed(2)} goes toward carried-forward penalties, paying out â‚¹${payout.toFixed(2)}.`
-        : `Empty all buckets for ${activeKidInfo.name} after paying out this week's â‚¹${week.cash.toFixed(2)}?`
+        ? `Empty all buckets for ${activeKidInfo.name}? ₹${Math.min(week.cash, debtNow).toFixed(2)} of this week's ₹${week.cash.toFixed(2)} goes toward carried-forward penalties, paying out ₹${payout.toFixed(2)}.`
+        : `Empty all buckets for ${activeKidInfo.name} after paying out this week's ₹${week.cash.toFixed(2)}?`
     if (!window.confirm(confirmMsg)) return
     setState((prev) => {
       const kid = ensureDebtField(prev.kids[activeKid])
@@ -419,7 +419,7 @@ export default function App() {
     setState((prev) => ({ ...prev, rewardRate: value }))
   }
 
-  // Kids share this device, so the â‚¹-per-coin rate stays hidden behind the
+  // Kids share this device, so the ₹-per-coin rate stays hidden behind the
   // parent passcode instead of sitting in plain view in the header.
   function requestRateUnlock() {
     if (rateUnlocked) {
@@ -428,7 +428,7 @@ export default function App() {
     }
     setPendingAction({
       title: 'Parent passcode required',
-      message: 'â‚¹ per coin is a parent-only setting.',
+      message: '₹ per coin is a parent-only setting.',
       run: () => setRateUnlocked(true),
     })
   }
@@ -477,14 +477,14 @@ export default function App() {
         </div>
       )}
       <header className="hero-banner">
-        <span className="hero-motif hero-motif-crescent" aria-hidden="true">â˜¾</span>
-        <span className="hero-motif hero-motif-quran" aria-hidden="true">ðŸ“–</span>
-        <span className="hero-motif hero-motif-books" aria-hidden="true">ðŸ“š</span>
-        <span className="hero-motif hero-motif-football" aria-hidden="true">âš½</span>
-        <span className="hero-motif hero-motif-badminton" aria-hidden="true">ðŸ¸</span>
-        <span className="hero-motif hero-motif-cricket" aria-hidden="true">ðŸ</span>
+        <span className="hero-motif hero-motif-crescent" aria-hidden="true">☾</span>
+        <span className="hero-motif hero-motif-quran" aria-hidden="true">📖</span>
+        <span className="hero-motif hero-motif-books" aria-hidden="true">📚</span>
+        <span className="hero-motif hero-motif-football" aria-hidden="true">⚽</span>
+        <span className="hero-motif hero-motif-badminton" aria-hidden="true">🏸</span>
+        <span className="hero-motif hero-motif-cricket" aria-hidden="true">🏏</span>
         <div className="hero-banner-text">
-          <p className="hero-kicker">ðŸ•Œ Deen &nbsp;Â·&nbsp; ðŸ“š Studies &nbsp;Â·&nbsp; ðŸŒ³ Play</p>
+          <p className="hero-kicker">🕌 Deen &nbsp;·&nbsp; 📚 Studies &nbsp;·&nbsp; 🌳 Play</p>
           <h1>Barakah Routine</h1>
           <p className="subtitle">Daily habits, prayers &amp; discipline tracker</p>
         </div>
@@ -498,7 +498,7 @@ export default function App() {
           Weeks
         </button>
         <button className={`view-tab ${view === 'parent' ? 'active' : ''}`} onClick={requestParentView}>
-          ðŸ‘¨â€ðŸ‘©â€ðŸ‘§ Parent
+          👨‍👩‍👧 Parent
         </button>
       </div>
 
@@ -522,7 +522,7 @@ export default function App() {
             </button>
           ))}
           <button type="button" className="logout-btn" onClick={handleLogout} title="Log out">
-            ðŸ‘‹ {activeKidInfo.name}, not you?
+            👋 {activeKidInfo.name}, not you?
           </button>
         </nav>
         <AnalogClock time={now} />
@@ -550,22 +550,22 @@ export default function App() {
             <div className="summary-card">
               <span className="summary-label">Today</span>
               <span className="summary-value">
-                â‚¹ {todayCash.toFixed(2)} / {maxDaily.toFixed(0)}
+                ₹ {todayCash.toFixed(2)} / {maxDaily.toFixed(0)}
               </span>
             </div>
             <div className="summary-card highlight">
               <span className="summary-label">This week's buckets</span>
-              <span className="summary-value">â‚¹ {week.cash.toFixed(2)}</span>
+              <span className="summary-value">₹ {week.cash.toFixed(2)}</span>
             </div>
             {debt > 0 && (
               <div className="summary-card debt-card">
                 <span className="summary-label">Carried penalty (owed)</span>
-                <span className="summary-value">âˆ’ â‚¹ {debt.toFixed(2)}</span>
+                <span className="summary-value">− ₹ {debt.toFixed(2)}</span>
               </div>
             )}
             {rateUnlocked && (
               <div className="reward-setting">
-                <label htmlFor="rate">â‚¹ per coin</label>
+                <label htmlFor="rate">₹ per coin</label>
                 <input
                   id="rate"
                   type="number"
@@ -577,16 +577,16 @@ export default function App() {
               </div>
             )}
             <button className="rate-toggle-btn" onClick={requestRateUnlock}>
-              {rateUnlocked ? 'ðŸ”’ Hide â‚¹/coin' : 'âš™ï¸ â‚¹/coin (parent)'}
+              {rateUnlocked ? '🔒 Hide ₹/coin' : '⚙️ ₹/coin (parent)'}
             </button>
             <button className="pay-btn" onClick={resetWeek}>
-              ðŸ’° Pay &amp; empty buckets
+              💰 Pay &amp; empty buckets
             </button>
           </section>
 
           {day.locked && (
             <div className="locked-banner">
-              ðŸ”’ Today is locked. Great work â€” come back tomorrow for a fresh day.
+              🔒 Today is locked. Great work — come back tomorrow for a fresh day.
             </div>
           )}
 
@@ -604,7 +604,7 @@ export default function App() {
 
           <div className="quran-verse-banner">
             <div className="verse-arabic" dir="rtl" lang="ar">
-              Ø¥ÙÙ†ÙŽÙ‘ Ù±Ù„Ù„ÙŽÙ‘Ù‡ÙŽ Ø¹ÙŽÙ„ÙÙŠÙ…ÙŒÛ¢ Ø¨ÙÙ…ÙŽØ§ ÙƒÙÙ†ØªÙÙ…Ù’ ØªÙŽØ¹Ù’Ù…ÙŽÙ„ÙÙˆÙ†ÙŽ
+              إِنَّ ٱللَّهَ عَلِيمٌۢ بِمَا كُنتُمْ تَعْمَلُونَ
             </div>
             <div className="verse-translation">
               &ldquo;Surely Allah fully knows what you used to do.&rdquo;
@@ -615,7 +615,7 @@ export default function App() {
           <div className="activity-list">
             {ACTIVITIES.map((activity) => {
               const entry = day.activities[activity.id]
-              // Every activity stands on its own â€” none is gated on another
+              // Every activity stands on its own — none is gated on another
               // activity being done first. Only its own time rule applies.
               const unlocked = !day.locked
               const timeReached = hasReachedTime(now, todayId, activity.visibleAfter)
@@ -648,15 +648,15 @@ export default function App() {
 
           <div className="footer-actions">
             <button className="lock-btn" onClick={requestDayReview} disabled={day.locked}>
-              <span className="lock-btn-icon">{day.locked ? 'ðŸ”’' : 'âœ…'}</span>
+              <span className="lock-btn-icon">{day.locked ? '🔒' : '✅'}</span>
               {day.locked ? 'Day locked' : 'Lock day & finish'}
             </button>
             <p className="footer-note">
-              Every coin is worth â‚¹{rate.toFixed(2)}. Locking the day marks any still-pending
+              Every coin is worth ₹{rate.toFixed(2)}. Locking the day marks any still-pending
               activity as missed (empty bucket).
             </p>
             <button className="admin-btn" onClick={requestAdminReset}>
-              ðŸ”§ Admin: reset today for testing
+              🔧 Admin: reset today for testing
             </button>
           </div>
         </>
@@ -757,7 +757,7 @@ function FlyingCoin({ from, to, duration }) {
         transitionDuration: `${duration}ms`,
       }}
     >
-      ðŸª™
+      🪙
     </div>
   )
 }
@@ -770,10 +770,10 @@ function Bucket({ activity, coins, cash, bucketRef }) {
       <div className="bucket-shape" ref={bucketRef}>
         <span className="bucket-shine" aria-hidden="true" />
         <div className="bucket-fill" style={{ height: `${fillPct}%`, background: colors.dot }} />
-        <span className="bucket-coins">ðŸª™ {coins}</span>
+        <span className="bucket-coins">🪙 {coins}</span>
       </div>
       <div className="bucket-label">{activity.label}</div>
-      <div className="bucket-cash">â‚¹{cash.toFixed(0)}</div>
+      <div className="bucket-cash">₹{cash.toFixed(0)}</div>
     </div>
   )
 }
@@ -826,7 +826,7 @@ function ActivityCard({ activity, entry, unlocked, locked, timeReached, pastDead
         )}
         {activity.control === 'simple' &&
           (timeGated ? (
-            <span className="time-gate-note">ðŸ”’ Unlocks at {formatTimeLabel(activity.visibleAfter)}</span>
+            <span className="time-gate-note">🔒 Unlocks at {formatTimeLabel(activity.visibleAfter)}</span>
           ) : (
             <button className="btn btn-done" disabled={!unlocked || entry.status !== 'pending'} onClick={onSimple}>
               {activity.buttonLabel || 'Completed on Time?'}
@@ -851,7 +851,7 @@ function TimedPushControl({ activity, entry, unlocked, pastDeadline, pastLateDea
   const pending = entry.status === 'pending'
   // Base lock: the activity is closed off (day locked, or already
   // completed) regardless of time. Within that, the deadline decides
-  // which single button is open â€” "Push Now" before 6:00 AM, "Late
+  // which single button is open — "Push Now" before 6:00 AM, "Late
   // Comer" from 6:00 AM up to its own lateDeadline (e.g. 7:00 AM), after
   // which both buttons close for the day.
   const baseLocked = !unlocked || !pending
@@ -874,7 +874,7 @@ function TimedPushControl({ activity, entry, unlocked, pastDeadline, pastLateDea
       <span className="deadline-note">
         Deadline: {deadlineLabel}
         {activity.lateLabel
-          ? ` Â· "${activity.lateLabel}" credits â‚¹${activity.lateCredit}${
+          ? ` · "${activity.lateLabel}" credits ₹${activity.lateCredit}${
               activity.lateDeadline ? ` until ${formatTimeLabel(activity.lateDeadline)}` : ''
             }`
           : ''}
@@ -884,11 +884,11 @@ function TimedPushControl({ activity, entry, unlocked, pastDeadline, pastLateDea
 }
 
 function StatusBadge({ state, time, reviewed, credit, unlockTime }) {
-  const creditNote = credit ? ` Â· â‚¹${credit}` : ''
+  const creditNote = credit ? ` · ₹${credit}` : ''
   const doneLabel =
     reviewed === 'approved'
-      ? `Coin approved${creditNote}${time ? ` Â· ${time.slice(0, 5)}` : ''}`
-      : `Coin earned${creditNote}${time ? ` Â· ${time.slice(0, 5)}` : ''} Â· pending parent review`
+      ? `Coin approved${creditNote}${time ? ` · ${time.slice(0, 5)}` : ''}`
+      : `Coin earned${creditNote}${time ? ` · ${time.slice(0, 5)}` : ''} · pending parent review`
   const map = {
     done: { label: doneLabel, className: reviewed === 'approved' ? 'badge-done' : 'badge-pending' },
     rejected: { label: 'Coin rejected by parent', className: 'badge-missed' },
@@ -896,7 +896,7 @@ function StatusBadge({ state, time, reviewed, credit, unlockTime }) {
     waiting: { label: 'Locked', className: 'badge-waiting' },
     locked: { label: 'Day closed', className: 'badge-waiting' },
     pending: { label: 'Ready', className: 'badge-pending' },
-    timegate: { label: `Not yet${unlockTime ? ` Â· from ${unlockTime}` : ''}`, className: 'badge-waiting' },
+    timegate: { label: `Not yet${unlockTime ? ` · from ${unlockTime}` : ''}`, className: 'badge-waiting' },
   }
   const info = map[state] || map.pending
   return <span className={`badge ${info.className}`}>{info.label}</span>
