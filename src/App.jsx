@@ -23,6 +23,7 @@ import ParentWeeklyPanel from './components/ParentWeeklyPanel.jsx'
 import { db } from './firebase.js'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 
+
 const LOGIN_STORAGE_KEY = 'barakahRoutine:loggedInKid'
 const TIP_MS = 1700
 // The whole app state lives in this one Firestore document, so every
