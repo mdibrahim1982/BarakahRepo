@@ -23,13 +23,21 @@ import ParentWeeklyPanel from './components/ParentWeeklyPanel.jsx'
 import { db } from './firebase.js'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 
-
 const LOGIN_STORAGE_KEY = 'barakahRoutine:loggedInKid'
-const TIP_MS = 1700
+const TIP_MS = 4000
 // The whole app state lives in this one Firestore document, so every
 // device reads/writes the same place — see README.md for why a single
 // document (rather than per-field updates) and its trade-offs.
 const CLOUD_DOC_PATH = ['app', 'state']
+
+// Local development (npm run dev, previewing on localhost/127.0.0.1) never
+// touches the shared Firestore data — it stays on this machine's
+// localStorage only, so testing locally can't overwrite or interfere with
+// the real family data other devices are syncing to. Only a real deployed
+// origin (e.g. the GitHub Pages URL) uses the cloud.
+const IS_LOCAL_DEV =
+  typeof window !== 'undefined' &&
+  ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
 
 // Bumped to v6: Fajr penalty replaced with a separate "Late Comer" credit
 // button, and per-activity cash is now tracked exactly (credit stored per
@@ -111,7 +119,7 @@ export default function App() {
   const [reviewOpen, setReviewOpen] = useState(false)
   const [rateUnlocked, setRateUnlocked] = useState(false)
   const [parentUnlocked, setParentUnlocked] = useState(false)
-  const [cloudStatus, setCloudStatus] = useState('connecting') // 'connecting' | 'synced' | 'offline'
+  const [cloudStatus, setCloudStatus] = useState(IS_LOCAL_DEV ? 'local' : 'connecting') // 'connecting' | 'synced' | 'offline' | 'local'
   const bucketRefs = useRef({})
   const importInputRef = useRef(null)
   const lastSyncedRef = useRef(null)
@@ -143,8 +151,11 @@ export default function App() {
   // One document holds the entire app state, so every device that opens
   // this app reads/writes the same place instead of each having its own
   // separate localStorage copy. localStorage above still acts as an
-  // instant-load local cache and an offline fallback.
+  // instant-load local cache and an offline fallback. Skipped entirely on
+  // localhost — local dev only ever talks to localStorage, so testing on
+  // your machine can't touch the real shared family data.
   useEffect(() => {
+    if (IS_LOCAL_DEV) return
     const ref = doc(db, ...CLOUD_DOC_PATH)
     const unsub = onSnapshot(
       ref,
@@ -176,6 +187,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    if (IS_LOCAL_DEV) return
     if (!cloudReadyRef.current) return
     const json = JSON.stringify(state)
     if (json === lastSyncedRef.current) return
@@ -641,6 +653,7 @@ export default function App() {
         {cloudStatus === 'synced' && '☁️ Synced — every device shares this data'}
         {cloudStatus === 'connecting' && '🔄 Connecting to shared data…'}
         {cloudStatus === 'offline' && '📴 Offline — changes are saved on this device only for now'}
+        {cloudStatus === 'local' && '💾 Synced to local storage (dev mode)'}
       </div>
 
       {view === 'weeks' && (
@@ -649,14 +662,23 @@ export default function App() {
 
       {view === 'parent' && (
         <>
-          <div className={`sync-note ${cloudStatus === 'synced' ? 'sync-note-ok' : ''}`}>
-            {cloudStatus === 'synced' ? (
+          <div className={`sync-note ${cloudStatus === 'synced' ? 'sync-note-ok' : ''} ${cloudStatus === 'local' ? 'sync-note-local' : ''}`}>
+            {cloudStatus === 'synced' && (
               <p>
                 <strong>☁️ Live sync is on.</strong> This device is connected to the same shared
                 data as every other device that opens this app — no export/import needed day to
                 day. The buttons below are just for an offline backup copy.
               </p>
-            ) : (
+            )}
+            {cloudStatus === 'local' && (
+              <p>
+                <strong>💾 Local dev mode.</strong> Running on localhost, so this session only
+                reads/writes this machine's localStorage — it never touches the shared cloud
+                data, so testing here can't affect what the kids see on the real devices. Deploy
+                to the real site to use live cloud sync.
+              </p>
+            )}
+            {(cloudStatus === 'offline' || cloudStatus === 'connecting') && (
               <p>
                 <strong>⚠️ Not connected right now.</strong> This device can't reach the shared
                 data at the moment (check its internet connection), so changes here are only
@@ -797,7 +819,15 @@ export default function App() {
                   now={now}
                   onPressTimed={(e) => pressTimedButton(activity, e)}
                   onPressLate={(e) => pressLateButton(activity, e)}
-                  onSimple={(e) => completeActivity(activity.id, 'done', '', e.currentTarget, activity.fixedCredit ?? rate)}
+                  onSimple={(e) =>
+                    completeActivity(
+                      activity.id,
+                      'done',
+                      new Date().toTimeString().slice(0, 8),
+                      e.currentTarget,
+                      activity.fixedCredit ?? rate,
+                    )
+                  }
                 />
               )
             })}
@@ -813,7 +843,7 @@ export default function App() {
               activity as missed (empty bucket).
             </p>
             <button className="admin-btn" onClick={requestAdminReset}>
-              🔧 Admin: reset today for testing
+              🔧 Reset Today
             </button>
           </div>
         </>
