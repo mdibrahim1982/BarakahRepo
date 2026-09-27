@@ -24,16 +24,20 @@ Then open the URL Vite prints (usually `http://localhost:5173`).
   does. A **👋 not you?** link next to the kid tabs logs out back to the
   login screen at any time.
 
-## Analog clock & coin animation
+## Digital clock, timestamps & coin animation
 
 - A digital clock (HH:MM:SS + weekday/date) sits on the right side of the
   banner, ticking every second.
+- Every activity now records the exact time it was tapped (not just the
+  timed prayer buttons) — that time shows next to "Coin earned" on the
+  card, in the day-end review, and in the Weeks history.
 - Whenever an activity is marked done, a short tip — a paraphrased Hadith
   or Islamic reminder relevant to that activity's category (prayer,
-  Qur'an, study, discipline, or play) — pops up for about 1.7 seconds,
-  and only then does a coin visibly fly from the button to that
-  activity's bucket. The bucket is credited right away in state — the
-  tip/animation is just a visual pause before it, not a delay in scoring.
+  Qur'an, study, discipline, or play) — pops up centered on the page for
+  4 seconds, and only then does a coin visibly fly from the button to
+  that activity's bucket. The bucket is credited right away in state —
+  the tip/animation is just a visual pause before it, not a delay in
+  scoring.
 
 ## ☁️ Cloud sync (Firestore) — every device shares the same data
 
@@ -76,8 +80,19 @@ reference / in case you ever need to redo it):**
    package to `node_modules`.
 
 **How it works day to day:**
-- A small **☁️ Synced** / **🔄 Connecting…** / **📴 Offline** pill sits
-  under the kid tabs so you can see the connection status at a glance.
+- A small **☁️ Synced** / **🔄 Connecting…** / **📴 Offline** / **💾 Local
+  dev mode** pill sits under the kid tabs so you can see the connection
+  status at a glance.
+- **Local development never touches the cloud.** Running the app on
+  `localhost`/`127.0.0.1` (i.e. `npm run dev` or `npm run preview` on your
+  own machine) automatically stays on plain `localStorage` only — it
+  never reads or writes the shared Firestore document. This means testing
+  changes locally can't ever overwrite or corrupt the real family data
+  that other devices are syncing to; the pill shows **💾 Synced to local
+  storage (dev mode)** in this case. Only a real deployed origin (the
+  GitHub Pages URL) uses the cloud. If you ever need to test the actual
+  cloud path locally, temporarily change the `IS_LOCAL_DEV` check in
+  `src/App.jsx` — just remember to revert it before committing.
 - If a device is briefly offline, it keeps working from its local cache
   and pushes any changes once it reconnects (Firestore's built-in offline
   persistence). If it's the very first time *any* device has connected,
@@ -136,7 +151,7 @@ If a specific tablet shows a blank page, it's most likely one of:
   On Control or Obeyed, since only the kid was there to witness it.
 - The same passcode also gates the **👨‍👩‍👧 Parent** weekly progress tab and
   the **₹ per coin** setting.
-- A **🔧 Admin: reset today for testing** button (bottom of the Today page,
+- A **🔧 Reset Today** button (bottom of the Today page,
   same passcode) resets today's activities back to a fresh, unlocked state
   — even after the day has already been locked — so you can test the flow
   again without waiting for a new day. It also reverses any coins that
