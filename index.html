@@ -16,5 +16,13 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script nomodule>
+      document.getElementById('root').innerHTML =
+        '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;' +
+        'padding:24px;font-family:sans-serif;background:#FBF7F0;color:#2B2620;text-align:center;">' +
+        '<div><h1 style="font-size:20px;">Please update your browser</h1>' +
+        '<p>This app needs a newer browser to run. Please update this device\'s ' +
+        'browser app (or try Chrome/Firefox) and reload this page.</p></div></div>'
+    </script>
   </body>
 </html>
