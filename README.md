@@ -26,14 +26,89 @@ Then open the URL Vite prints (usually `http://localhost:5173`).
 
 ## Analog clock & coin animation
 
-- A rich analog clock (hour/minute/second hands, tick marks) sits on the
-  right side of the banner, ticking every second.
+- A digital clock (HH:MM:SS + weekday/date) sits on the right side of the
+  banner, ticking every second.
 - Whenever an activity is marked done, a short tip — a paraphrased Hadith
   or Islamic reminder relevant to that activity's category (prayer,
   Qur'an, study, discipline, or play) — pops up for about 1.7 seconds,
   and only then does a coin visibly fly from the button to that
   activity's bucket. The bucket is credited right away in state — the
   tip/animation is just a visual pause before it, not a delay in scoring.
+
+## ☁️ Cloud sync (Firestore) — every device shares the same data
+
+This app now syncs through a Firebase/Firestore cloud database, so a kid's
+coins earned on one phone/tablet/laptop show up immediately on every other
+device that opens the same app — no manual exporting for day-to-day use.
+
+**One-time setup (already done for this project, documented here for
+reference / in case you ever need to redo it):**
+
+1. `src/firebase.js` holds the Firebase Web config (`apiKey`, `projectId`,
+   etc.). This is safe to have in the public source — for a client-side
+   web app this config is **not** a secret; it just tells the browser
+   which Firebase project to talk to. Actual access control is done by
+   the Firestore **Security Rules** below, not by hiding this file.
+2. In the [Firebase console](https://console.firebase.google.com) →
+   your project → **Build → Firestore Database → Rules**, use:
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /app/state {
+         allow read, write: if true;
+       }
+       match /{document=**} {
+         allow read, write: if false;
+       }
+     }
+   }
+   ```
+   This opens read/write to exactly one document (`app/state`, where the
+   whole app's data lives) and denies everything else by default. It's
+   intentionally simple since this app has no real user accounts (the kid
+   "login" is just a friendly name/password ritual, not Firebase Auth) —
+   treat this like a shared family whiteboard, not a bank vault. **Test
+   mode** rules (Firestore's default for a new project) work short-term
+   but **expire after 30 days** and then lock everyone out — replace them
+   with the rules above so it keeps working.
+3. Run `npm install` after pulling these changes — it adds the `firebase`
+   package to `node_modules`.
+
+**How it works day to day:**
+- A small **☁️ Synced** / **🔄 Connecting…** / **📴 Offline** pill sits
+  under the kid tabs so you can see the connection status at a glance.
+- If a device is briefly offline, it keeps working from its local cache
+  and pushes any changes once it reconnects (Firestore's built-in offline
+  persistence). If it's the very first time *any* device has connected,
+  whatever was already in that device's local storage is uploaded once to
+  seed the shared cloud copy, so earlier testing data isn't lost.
+- The **👨‍👩‍👧 Parent** tab still has **⬇️ Export** / **⬆️ Import**
+  buttons — these aren't needed for normal cross-device use anymore, but
+  are kept as a manual backup/restore tool (e.g. before trying something
+  risky, or to snapshot progress before a "Pay & empty buckets").
+
+## Rendering on tablets / older browsers
+
+If a specific tablet shows a blank page, it's most likely one of:
+
+1. **It hasn't connected to the shared cloud data yet.** Check the small
+   status pill under the kid tabs — if it says "📴 Offline" or is stuck on
+   "🔄 Connecting…", that tablet can't reach Firestore right now (Wi-Fi
+   issue, or the tablet's browser blocking the connection). It should
+   still show the login screen and *something* (its local cache or a
+   blank day), not a truly blank white/black screen with nothing at all —
+   that's a different, real problem covered below.
+2. **An old/outdated browser on the tablet.** Cheaper or older Android
+   tablets often ship with an outdated WebView/browser that can't run
+   modern JavaScript at all, which silently blanks the whole page with no
+   error shown. `vite.config.js` now sets `build.target: 'es2015'` so a
+   **production build** (`npm run build` + `npm run preview`, or hosting
+   the `dist/` folder) is transpiled for much older browsers — this does
+   **not** apply to `npm run dev`, which always needs a fairly modern
+   browser no matter what. If you're testing on a tablet, use the built
+   version, not the dev server, and try updating that tablet's browser
+   app if possible.
 
 ## Weeks page
 
