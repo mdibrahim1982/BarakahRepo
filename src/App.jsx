@@ -20,9 +20,15 @@ import PasscodeModal from './components/PasscodeModal.jsx'
 import DayReviewModal from './components/DayReviewModal.jsx'
 import LoginGate from './components/LoginGate.jsx'
 import ParentWeeklyPanel from './components/ParentWeeklyPanel.jsx'
+import { db } from './firebase.js'
+import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 
 const LOGIN_STORAGE_KEY = 'barakahRoutine:loggedInKid'
 const TIP_MS = 1700
+// The whole app state lives in this one Firestore document, so every
+// device reads/writes the same place — see README.md for why a single
+// document (rather than per-field updates) and its trade-offs.
+const CLOUD_DOC_PATH = ['app', 'state']
 
 // Bumped to v6: Fajr penalty replaced with a separate "Late Comer" credit
 // button, and per-activity cash is now tracked exactly (credit stored per
@@ -104,7 +110,11 @@ export default function App() {
   const [reviewOpen, setReviewOpen] = useState(false)
   const [rateUnlocked, setRateUnlocked] = useState(false)
   const [parentUnlocked, setParentUnlocked] = useState(false)
+  const [cloudStatus, setCloudStatus] = useState('connecting') // 'connecting' | 'synced' | 'offline'
   const bucketRefs = useRef({})
+  const importInputRef = useRef(null)
+  const lastSyncedRef = useRef(null)
+  const cloudReadyRef = useRef(false)
 
   const todayId = todayKey(now)
   const weekId = weekKey(now)
@@ -127,6 +137,53 @@ export default function App() {
   }, [todayId])
 
   useEffect(() => saveState(state), [state])
+
+  // --- Cloud sync (Firestore) ----------------------------------------
+  // One document holds the entire app state, so every device that opens
+  // this app reads/writes the same place instead of each having its own
+  // separate localStorage copy. localStorage above still acts as an
+  // instant-load local cache and an offline fallback.
+  useEffect(() => {
+    const ref = doc(db, ...CLOUD_DOC_PATH)
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data()
+          lastSyncedRef.current = JSON.stringify(data)
+          setState(data)
+        } else {
+          // Nobody has ever synced before — seed the cloud with whatever
+          // is already in this browser (e.g. from earlier local testing)
+          // so that data isn't lost.
+          setState((prev) => {
+            lastSyncedRef.current = JSON.stringify(prev)
+            setDoc(ref, prev).catch((e) => console.error('Initial cloud seed failed', e))
+            return prev
+          })
+        }
+        cloudReadyRef.current = true
+        setCloudStatus('synced')
+      },
+      (err) => {
+        console.error('Cloud sync error — working from this device only', err)
+        cloudReadyRef.current = false
+        setCloudStatus('offline')
+      },
+    )
+    return unsub
+  }, [])
+
+  useEffect(() => {
+    if (!cloudReadyRef.current) return
+    const json = JSON.stringify(state)
+    if (json === lastSyncedRef.current) return
+    lastSyncedRef.current = json
+    setDoc(doc(db, ...CLOUD_DOC_PATH), state).catch((e) => {
+      console.error('Cloud save failed — this change is only saved on this device for now', e)
+      setCloudStatus('offline')
+    })
+  }, [state])
 
   const kidData = state.kids[activeKid]
   // withAllActivities guards the very first render too (before the
@@ -154,6 +211,57 @@ export default function App() {
     } catch (e) {
       console.error('Could not clear login', e)
     }
+  }
+
+  // --- Manual backup (export/import) ----------------------------------
+  // Cross-device sync now happens automatically via Firestore (see the
+  // cloud-sync effects below) — this export/import pair is kept as a
+  // manual backup/restore tool (e.g. a safety copy before "Pay & empty
+  // buckets", or a fallback if a device can't reach the cloud).
+  function exportData() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `barakah-routine-backup-${todayId}.json`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  function requestExport() {
+    setPendingAction({
+      title: 'Parent passcode required',
+      message: 'Download a backup file of both kids\u2019 data from this device.',
+      run: exportData,
+    })
+  }
+
+  function importData(file) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result))
+        if (!parsed || typeof parsed !== 'object' || !parsed.kids) {
+          throw new Error('Missing "kids" in file')
+        }
+        setState(parsed)
+        window.alert('Backup imported! This device now shows that backup\u2019s data.')
+      } catch (e) {
+        console.error('Import failed', e)
+        window.alert('Could not read that file \u2014 make sure it\u2019s a Barakah Routine backup .json file.')
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  function requestImport() {
+    setPendingAction({
+      title: 'Parent passcode required',
+      message: 'Replace this device\u2019s data with a backup file you pick next.',
+      run: () => importInputRef.current?.click(),
+    })
   }
 
   function launchCoin(activityId, originEl) {
@@ -525,7 +633,13 @@ export default function App() {
             👋 {activeKidInfo.name}, not you?
           </button>
         </nav>
-        <AnalogClock time={now} />
+        <DigitalClock time={now} />
+      </div>
+
+      <div className={`cloud-status cloud-status-${cloudStatus}`}>
+        {cloudStatus === 'synced' && '☁️ Synced — every device shares this data'}
+        {cloudStatus === 'connecting' && '🔄 Connecting to shared data…'}
+        {cloudStatus === 'offline' && '📴 Offline — changes are saved on this device only for now'}
       </div>
 
       {view === 'weeks' && (
@@ -533,16 +647,58 @@ export default function App() {
       )}
 
       {view === 'parent' && (
-        <ParentWeeklyPanel
-          kids={KIDS}
-          kidsState={state.kids}
-          weekId={weekId}
-          onLock={() => {
-            setParentUnlocked(false)
-            setView('today')
-          }}
-        />
+        <>
+          <div className={`sync-note ${cloudStatus === 'synced' ? 'sync-note-ok' : ''}`}>
+            {cloudStatus === 'synced' ? (
+              <p>
+                <strong>☁️ Live sync is on.</strong> This device is connected to the same shared
+                data as every other device that opens this app — no export/import needed day to
+                day. The buttons below are just for an offline backup copy.
+              </p>
+            ) : (
+              <p>
+                <strong>⚠️ Not connected right now.</strong> This device can't reach the shared
+                data at the moment (check its internet connection), so changes here are only
+                being saved locally until it reconnects. Use the buttons below to manually move
+                data to/from another device meanwhile.
+              </p>
+            )}
+            <div className="sync-actions">
+              <button type="button" className="btn btn-done" onClick={requestExport}>
+                ⬇️ Export backup from this device
+              </button>
+              <button type="button" className="btn btn-late" onClick={requestImport}>
+                ⬆️ Import backup into this device
+              </button>
+            </div>
+            <p className="sync-hint">
+              Export here, transfer the file (email/Drive/USB), then open this app on the other
+              device and Import it there.
+            </p>
+          </div>
+          <ParentWeeklyPanel
+            kids={KIDS}
+            kidsState={state.kids}
+            weekId={weekId}
+            onLock={() => {
+              setParentUnlocked(false)
+              setView('today')
+            }}
+          />
+        </>
       )}
+
+      <input
+        ref={importInputRef}
+        type="file"
+        accept="application/json"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) importData(file)
+          e.target.value = ''
+        }}
+      />
 
       {view === 'today' && (
         <>
@@ -690,48 +846,18 @@ export default function App() {
   )
 }
 
-function AnalogClock({ time }) {
-  const seconds = time.getSeconds()
-  const minutes = time.getMinutes() + seconds / 60
-  const hours = (time.getHours() % 12) + minutes / 60
-  const secDeg = seconds * 6
-  const minDeg = minutes * 6
-  const hourDeg = hours * 30
+function DigitalClock({ time }) {
+  const timeStr = time.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  })
   const dateStr = time.toLocaleDateString(undefined, { weekday: 'short', day: '2-digit', month: 'short' })
 
-  const point = (deg, r) => {
-    const rad = ((deg - 90) * Math.PI) / 180
-    return { x: 50 + r * Math.cos(rad), y: 50 + r * Math.sin(rad) }
-  }
-  const hourEnd = point(hourDeg, 22)
-  const minEnd = point(minDeg, 32)
-  const secEnd = point(secDeg, 35)
-
   return (
-    <div className="banner-clock" aria-label={`Current time ${time.toTimeString().slice(0, 5)}`}>
-      <svg viewBox="0 0 100 100" className="analog-clock">
-        <circle cx="50" cy="50" r="47" className="clock-rim" />
-        <circle cx="50" cy="50" r="41" className="clock-face" />
-        {Array.from({ length: 12 }).map((_, i) => {
-          const major = i % 3 === 0
-          const p1 = point(i * 30, major ? 33 : 36.5)
-          const p2 = point(i * 30, 39.5)
-          return (
-            <line
-              key={i}
-              x1={p1.x}
-              y1={p1.y}
-              x2={p2.x}
-              y2={p2.y}
-              className={major ? 'clock-tick clock-tick-major' : 'clock-tick'}
-            />
-          )
-        })}
-        <line x1="50" y1="50" x2={hourEnd.x} y2={hourEnd.y} className="clock-hand clock-hand-hour" />
-        <line x1="50" y1="50" x2={minEnd.x} y2={minEnd.y} className="clock-hand clock-hand-minute" />
-        <line x1="50" y1="50" x2={secEnd.x} y2={secEnd.y} className="clock-hand clock-hand-second" />
-        <circle cx="50" cy="50" r="3" className="clock-pivot" />
-      </svg>
+    <div className="banner-clock" aria-label={`Current time ${timeStr}`}>
+      <span className="digital-time">{timeStr}</span>
       <span className="banner-clock-date">{dateStr}</span>
     </div>
   )
